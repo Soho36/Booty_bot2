@@ -1,10 +1,12 @@
 import json
 import telebot
 import requests
+from config import TOKEN
 
-TOKEN = '6880602647:AAEJFBAN2jnOblSJoing7AXjzZcqFCFQFNI'
 
 bot = telebot.TeleBot(TOKEN)
+
+#----------------------------------------------------------------
 
 keys = {
     'btc': 'BTC',
@@ -13,6 +15,7 @@ keys = {
     'usd': 'USD',
     'eur': 'EUR',
     'gbp': 'GBP',
+    'xrp': 'XRP'
 }
 
 fiats = ['USD - United States Dollar', 'EUR - Euro', 'GBP - Pound sterling']
@@ -42,24 +45,39 @@ def values(message: telebot.types.Message):
 
 @bot.message_handler(content_types=['text'])
 def convert(message: telebot.types.Message):
-    amount, quote, base = message.text.split()
-    print(f'Quote: {quote}, Base: {base}')
+    try:
+        amount, quote, base = message.text.split()
+        amount = float(amount)
+        quote, base = quote.lower(), base.lower()
+        print(quote)
+
+    except ValueError:
+        error_text = f'Invalid input format. Please see /help of info'
+        bot.send_message(message.chat.id, error_text)
+        return
+
     try:
         r = requests.get(f'https://min-api.cryptocompare.com/data/price?fsym={keys[quote]}&tsyms={keys[base]}')
-        print('r', r)
-        total_base = json.loads(r.content)[keys[base]]  #[keys[base]] extracts value from JSON response
-        print('r.content', r.content)
-        print('total_base', total_base)
+        total_base = round((json.loads(r.content)[keys[base]]) * amount, 2)  #[keys[base]] extracts value from JSON response
+        print(total_base)
         text = f'{amount} {quote} is {total_base} {base}'
         bot.send_message(message.chat.id, text)
-    except Exception as e:
-        error_text = f'An error occurred: {str(e)}'
+
+    except requests.exceptions.RequestException as req_err:
+        error_text = f'Request error occurred: {str(req_err)}'
         bot.send_message(message.chat.id, error_text)
 
-# @bot.message_handler(content_types=['text'])
-# def reply(message: telebot.types.Message):
-#     text = 'Dont understand you!'
-#     bot.send_message(message.chat.id, text)
+    except json.JSONDecoder as json_err:
+        error_text = f'Error decoding JSON response: {str(json_err)}'
+        bot.send_message(message.chat.id, error_text)
+
+    except KeyError as key_err:
+        error_text = f'Error accessing data in the API response: {str(key_err)}'
+        bot.send_message(message.chat.id, error_text)
+
+    except Exception as e:
+        error_text = f'An unexpected error occurred: {str(e)}'
+        bot.send_message(message.chat.id, error_text)
 
 
 bot.polling(none_stop=True)
