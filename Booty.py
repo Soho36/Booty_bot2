@@ -1,37 +1,20 @@
 import json
 import telebot
 import requests
-from config import TOKEN
+from config import TOKEN, keys, fiats, crypto
 
 
 bot = telebot.TeleBot(TOKEN)
 
-#----------------------------------------------------------------
+# ----------------------------------------------------------------
 
-keys = {
-    'btc': 'BTC',
-    'eth': 'ETH',
-    'ltc': 'LTC',
-    'xrp': 'XRP',
-    'usd': 'USD',
-    'eur': 'EUR',
-    'gbp': 'GBP',
-    'aud': 'AUD',
-    'cad': 'CAD',
-    'chf': 'CHF',
-    'jpy': 'JPY',
-    'rub': 'RUB',
-}
-
-fiats = ['USD - United States Dollar', 'EUR - Euro', 'GBP - Pound sterling']
-crypto = ['BTC - Bitcoin', 'ETH - Ethereum', 'LTC - Litecoin', 'XRP -Ripple']
 
 @bot.message_handler(commands=['start', 'help'])
 def start(message: telebot.types.Message):
     print("Received /start or /help command.")
     print(f"Username: {message.chat.username}")
     text = (f"Hi {message.chat.username}!\n"
-            "I am a bot and I can convert crypto real fast!\n"
+            "I am a bot and I can convert forex and crypto real fast!\n"
             "You can control me using these commands:\n\n"
             "/start or /help for instructions\n"
             "/values for available currencies list\n\n"
@@ -66,8 +49,9 @@ def convert(message: telebot.types.Message):
 
     try:
         r = requests.get(f'https://min-api.cryptocompare.com/data/price?fsym={keys[quote]}&tsyms={keys[base]}')
-        total_base = round((json.loads(r.content)[keys[base]]) * amount, 4)  #[keys[base]] extracts value from JSON response
-        text = f'{amount} {quote} is {total_base} {base}'
+        total_base = round((json.loads(r.content)[keys[base]]) * amount, 4)  # [keys[base]] extracts value
+        # from JSON response
+        text = f'{amount} {quote} = {total_base} {base}'.upper()
         bot.send_message(message.chat.id, text)
         print("Converted value message sent")
 
